@@ -1,18 +1,26 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { Header } from '@/components/Header';
 import { AdSquare } from '@/components/AdTemplates';
 import { EditorModal } from '@/components/EditorModal';
+import { AuthModal } from '@/components/AuthModal';
+import { TopupModal } from '@/components/TopupModal';
 import { Logo } from '@/components/logo';
 import { parseOfferText } from '@/utils/parser';
 import { exportAdAsPng, copyAdToClipboard } from '@/utils/exporter';
+import { getSupabaseClient } from '@/utils/supabase/client';
 import { AdContent, TemplateId } from '@/types/ad';
 
 const DEFAULT_OFFER = 'We help coaches and agency owners get 40 sales calls a month without chasing leads. We place a trained setter in your business in 7 days. 30 calls in 30 days or you don\'t pay.';
 
 export default function Home() {
   const [credits, setCredits] = useState<number>(30);
+  const [user, setUser] = useState<any>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState<boolean>(true);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState<boolean>(false);
   const [rawOffer, setRawOffer] = useState<string>(DEFAULT_OFFER);
   const [adContent, setAdContent] = useState<AdContent>(() => parseOfferText(DEFAULT_OFFER));
   const [editingTemplateId, setEditingTemplateId] = useState<TemplateId | null>(null);
@@ -33,6 +41,116 @@ export default function Home() {
     }, 150);
   };
 
+  // Sync Supabase authentication and user credits
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setIsAuthLoading(false);
+      return;
+    }
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        await fetchUserCredits(session.user.id);
+      }
+      setIsAuthLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        await fetchUserCredits(session.user.id);
+      } else {
+        setUser(null);
+        setCredits(30);
+      }
+      setIsAuthLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const fetchUserCredits = async (userId: string) => {
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    try {
+      let { data, error } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', userId)
+        .single();
+
+      // Retry once if trigger is completing insertion
+      if (error || !data) {
+        await new Promise((r) => setTimeout(r, 400));
+        const retry = await supabase
+          .from('profiles')
+          .select('credits')
+          .eq('id', userId)
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+
+      if (!error && data && typeof data.credits === 'number') {
+        setCredits(data.credits);
+      }
+    } catch (err) {
+      console.error('Failed to fetch user credits:', err);
+    }
+  };
+
+  const handleSignOut = async () => {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+    setUser(null);
+    setCredits(30);
+    showToast('Signed out successfully.');
+  };
+
+  const deductCredits = async (amount: number = 10) => {
+    // 1. Immediately update UI state for instant responsiveness
+    setCredits((prev) => Math.max(0, prev - amount));
+
+    // 2. Persist directly to Supabase
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const activeUser = session?.user || user;
+
+      if (activeUser?.id) {
+        const { data, error } = await supabase.rpc('increment_credits', {
+          user_id: activeUser.id,
+          amount: -amount,
+        });
+
+        if (!error && typeof data === 'number') {
+          setCredits(data); // Sync verified balance from database
+        } else {
+          console.warn('RPC increment_credits error, attempting direct upsert:', error?.message);
+          const newBal = Math.max(0, credits - amount);
+          await supabase.from('profiles').upsert({
+            id: activeUser.id,
+            email: activeUser.email,
+            credits: newBal,
+          });
+          setCredits(newBal);
+        }
+      } else {
+        console.warn('Credits deducted in guest mode (not signed in to Supabase session).');
+      }
+    } catch (err) {
+      console.error('Failed to deduct credits in database:', err);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!rawOffer.trim()) {
       showToast('Please enter an offer description');
@@ -40,7 +158,8 @@ export default function Home() {
     }
 
     if (credits <= 0) {
-      showToast('No credits remaining!');
+      showToast('No credits remaining! Top up to continue.');
+      setIsTopupModalOpen(true);
       return;
     }
 
@@ -59,7 +178,7 @@ export default function Home() {
       const data = await res.json();
       if (data.content) {
         setAdContent(data.content);
-        setCredits((prev) => Math.max(0, prev - 10));
+        deductCredits(10);
         showToast(data.isAiGenerated ? 'Generated 10 AI-crafted ad squares!' : 'Generated 10 high-converting ad squares!');
         scrollToTemplates();
       } else {
@@ -69,7 +188,7 @@ export default function Home() {
       console.error(e);
       const parsed = parseOfferText(rawOffer);
       setAdContent(parsed);
-      setCredits((prev) => Math.max(0, prev - 10));
+      deductCredits(10);
       showToast('Generated 10 high-converting ad squares!');
       scrollToTemplates();
     } finally {
@@ -110,7 +229,14 @@ export default function Home() {
       )}
 
       {/* Header */}
-      <Header credits={credits} />
+      <Header
+        credits={credits}
+        isLoadingCredits={isAuthLoading}
+        user={user}
+        onOpenTopup={() => setIsTopupModalOpen(true)}
+        onOpenAuth={() => setIsAuthModalOpen(true)}
+        onSignOut={handleSignOut}
+      />
 
       <main className="flex-1">
         {/* Exact Hero 2-Column Section */}
@@ -144,9 +270,19 @@ export default function Home() {
               </li>
               <li className="flex gap-3 text-sm text-slate-900">
                 <span className="mt-0.5 font-bold text-[#f02508]">→</span>
-                <span>After your free credits, it&apos;s ₹199 a month for 300 credits.</span>
+                <span>After your free credits, it&apos;s ₹99 a month for 300 credits.</span>
               </li>
             </ul>
+
+            <p className="mt-8 text-sm text-slate-500">
+              Need more?{' '}
+              <Link
+                href="/pricing"
+                className="font-semibold text-slate-900 underline underline-offset-4 hover:text-[#f02508] transition-colors"
+              >
+                See pricing — ₹99/mo for 300 credits
+              </Link>
+            </p>
           </section>
 
           {/* Right Column Form Card (Direct input only) */}
@@ -230,6 +366,32 @@ export default function Home() {
         content={adContent}
         onChange={(updated) => setAdContent(updated)}
         onClose={() => setEditingTemplateId(null)}
+      />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        onSuccess={(authPayload) => {
+          setUser(authPayload);
+          if (authPayload.id) {
+            fetchUserCredits(authPayload.id);
+          }
+          showToast(`Welcome! Signed in as ${authPayload.email || 'User'}`);
+        }}
+      />
+
+      {/* Topup Modal */}
+      <TopupModal
+        isOpen={isTopupModalOpen}
+        currentCredits={credits}
+        userId={user?.id}
+        userEmail={user?.email}
+        onClose={() => setIsTopupModalOpen(false)}
+        onSuccess={(updatedCredits) => {
+          setCredits(updatedCredits);
+          showToast(`Top-up successful! New balance: ${updatedCredits} credits.`);
+        }}
       />
 
       {/* Footer */}

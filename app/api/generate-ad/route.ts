@@ -1,10 +1,36 @@
 import { NextResponse } from 'next/server';
-import { parseOfferText } from '@/utils/parser';
+import fs from 'fs';
+import path from 'path';
 import { AdContent } from '@/types/ad';
+import { SYSTEM_PROMPT, createUserPrompt } from '@/constants/prompts';
+
+// Dynamically read environment variables to ensure live reload without restarting dev server
+function getEnvKey(keyName: string): string {
+  if (process.env[keyName]) {
+    return process.env[keyName]!.trim();
+  }
+
+  const envFiles = ['.env.local', '.env', '.env.development.local', '.env.development'];
+  for (const file of envFiles) {
+    try {
+      const fullPath = path.resolve(process.cwd(), file);
+      if (fs.existsSync(fullPath)) {
+        const text = fs.readFileSync(fullPath, 'utf-8');
+        const regex = new RegExp(`^${keyName}=([^\\r\\n]+)`, 'm');
+        const match = text.match(regex);
+        if (match && match[1]) {
+          const val = match[1].trim().replace(/^["']|["']$/g, '');
+          if (val) return val;
+        }
+      }
+    } catch { }
+  }
+  return '';
+}
 
 function extractJsonFromText(raw: string): any {
   let text = raw.trim();
-  // Strip markdown code fences if present
+  // Strip markdown code fences
   if (text.startsWith('```')) {
     text = text.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '').trim();
   }
@@ -16,156 +42,185 @@ function extractJsonFromText(raw: string): any {
   return JSON.parse(text);
 }
 
+// Active free models on OpenRouter prioritized for fast response + balanced DR copy quality
+const FREE_MODELS = [
+  'minimax/minimax-m2.7:free',          // ~1.9s fast response, excellent schema adherence
+  'minimax/minimax-m3:free',            // ~3.6s fast response, deeper strategic reasoning
+  'liquid/lfm-2.5-2.6b:free',           // Lightweight instant fallback
+  'dots-studio/dots-3-note-preview:free',
+  'inclusionai/ling-3.0-flash-sante:free',
+];
+
 export async function POST(req: Request) {
-  let prompt = '';
   try {
     const body = await req.json();
-    prompt = (body.prompt || '').trim();
+    const prompt = (body.prompt || '').trim();
 
     if (!prompt) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
+      return NextResponse.json({ error: 'Please enter an offer description' }, { status: 400 });
     }
 
-    const base = parseOfferText(prompt);
+    const apiKey = getEnvKey('OPENROUTER_API_KEY');
+    const groqKey = getEnvKey('GROQ_API_KEY');
 
-    // Check available free or paid API keys
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    const groqKey = process.env.GROQ_API_KEY;
-    const openAiKey = process.env.OPENAI_API_KEY;
-
-    let apiUrl = '';
-    let apiKey = '';
-    let modelName = '';
-    const extraHeaders: Record<string, string> = {};
-
-    if (openRouterKey) {
-      apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
-      apiKey = openRouterKey;
-      // 100% Free models on OpenRouter:
-      modelName = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free';
-      extraHeaders['HTTP-Referer'] = 'https://veyro.app';
-      extraHeaders['X-Title'] = 'Veyro Direct-Response Ad Generator';
-    } else if (groqKey) {
-      apiUrl = 'https://api.groq.com/openai/v1/chat/completions';
-      apiKey = groqKey;
-      // 100% Free on Groq:
-      modelName = 'llama-3.3-70b-versatile';
-    } else if (openAiKey) {
-      apiUrl = 'https://api.openai.com/v1/chat/completions';
-      apiKey = openAiKey;
-      modelName = 'gpt-4o-mini';
-    } else {
-      // Graceful fallback to built-in direct-response parser if no API key is configured yet
-      return NextResponse.json({
-        content: base,
-        isAiGenerated: false,
-        message: 'Generated using built-in parser. Add OPENROUTER_API_KEY in .env.local to activate free AI generation.',
-      });
+    if (!apiKey && !groqKey) {
+      return NextResponse.json(
+        {
+          error: 'OPENROUTER_API_KEY or GROQ_API_KEY not found in .env or .env.local. Please add your key to enable AI generation.',
+        },
+        { status: 400 }
+      );
     }
 
-    const systemPrompt = `You are a world-class direct-response advertising copywriter (Alex Hormozi / David Ogilvy style).
-Given a user's offer or business idea, write high-converting copy specifically tailored for 10 ad layouts.
+    // Select preferred models list
+    const customModel = getEnvKey('OPENROUTER_MODEL');
+    const modelsToTry = customModel ? [customModel, ...FREE_MODELS] : FREE_MODELS;
 
-CRITICAL: Return ONLY a valid JSON object matching this exact schema:
-{
-  "audience": "ALL-CAPS target audience (e.g. 'FOR COACHES & AGENCY OWNERS', 'FOR DTC BRANDS')",
-  "headline": "punchy hook focused on the big desired outcome (max 12 words)",
-  "highlight": "the core 3-5 words inside the headline to highlight visually",
-  "subheadline": "specific mechanism and timeline sentence",
-  "guarantee": "irresistible risk-reversal guarantee ('30 calls in 30 days or you do not pay')",
-  "cta": "action-oriented CTA button phrase ('Book Your 1:1 Call', 'Claim Free Audit')",
-  "disclaimer": "short professional disclaimer or eligibility criteria",
-  "bigStat": "bold metric ('40+', '10x', '-15 lbs', '2.4x')",
-  "statDescription": "short description of what the bigStat metric represents",
-  "longCopy": "2-3 punchy direct sentences addressing the root bottleneck and the proven solution",
-  "xPain": "the painful old way ('Posting daily with zero booked calls')",
-  "checkPromise": "the easy new way ('Calendar full of qualified buyers on autopilot')",
-  "chatLead1": "a customer DM complaining about a painful problem ('I spend hours on outreach with no replies')",
-  "chatYou1": "your diagnostic question ('How long has this follow-up bottleneck been hurting you?')",
-  "chatLead2": "customer confirming they desperately need a fix ('Over 6 months, really need a system that works')",
-  "chatYou2": "your confident solution and invite ('We install the setter and scripts in 7 days — let us talk!')",
-  "chatFooterTitle": "short transformation punchline slogan ('Turn quiet calendars into booked pipelines')",
-  "notesTitle": "title for a 4-step action plan ('The 7-Day Protocol')",
-  "notesSubtitle": "one sentence explaining the outcome of the 4 steps",
-  "notesSteps": ["step 1 description", "step 2 description", "step 3 description", "step 4 description"],
-  "accentColor": "#22d3ee"
-}`;
+    let lastError = '';
+    let parsedContent: any = null;
+    let successfulModel = '';
 
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-        ...extraHeaders,
-      },
-      body: JSON.stringify({
-        model: modelName,
-        response_format: { type: 'json_object' },
-        temperature: 0.7,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Create direct-response ad copy for this offer: "${prompt}"` },
-        ],
-      }),
-    });
+    // 1. If Groq API key is available, attempt ultra-fast generation first (<1-2s)
+    if (groqKey) {
+      const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+      for (const model of groqModels) {
+        try {
+          console.log(`[AI Generation] Calling Groq model: ${model}`);
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqKey}`,
+              'Content-Type': 'application/json',
+            },
+            signal: AbortSignal.timeout(10000),
+            body: JSON.stringify({
+              model,
+              temperature: 0.8,
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: createUserPrompt(prompt) },
+              ],
+            }),
+          });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`AI API error (${response.status}):`, errorText);
-      // Fall back safely to parser
-      return NextResponse.json({
-        content: base,
-        isAiGenerated: false,
-        message: 'AI provider error, fell back to built-in parser.',
-      });
+          if (response.ok) {
+            const data = await response.json();
+            const rawText = data.choices?.[0]?.message?.content;
+            if (rawText) {
+              parsedContent = extractJsonFromText(rawText);
+              successfulModel = `groq/${model}`;
+              console.log(`[AI Generation] Success with Groq model: ${model}`);
+              break;
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[AI Generation] Groq ${model} exception:`, err?.message);
+        }
+      }
     }
 
-    const data = await response.json();
-    const rawContent = data.choices?.[0]?.message?.content;
+    // 2. OpenRouter models with 12s timeout per model to prevent long hangs
+    if (!parsedContent && apiKey) {
+      for (const model of modelsToTry) {
+        try {
+          console.log(`[AI Generation] Calling OpenRouter model: ${model}`);
+          const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+              'HTTP-Referer': 'https://veyro.app',
+              'X-Title': 'Veyro Direct-Response Ad Generator',
+            },
+            signal: AbortSignal.timeout(12000), // 12s timeout per model prevents indefinite hanging
+            body: JSON.stringify({
+              model,
+              temperature: 0.8,
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: createUserPrompt(prompt) },
+              ],
+            }),
+          });
 
-    if (!rawContent) {
-      return NextResponse.json({ content: base, isAiGenerated: false });
+          if (!response.ok) {
+            const errText = await response.text();
+            console.warn(`[AI Generation] Model ${model} returned ${response.status}: ${errText}`);
+            lastError = `Model ${model} error (${response.status}): ${errText}`;
+            continue; // Try next fast model
+          }
+
+          const data = await response.json();
+          const rawText = data.choices?.[0]?.message?.content;
+
+          if (!rawText) {
+            lastError = `Model ${model} returned empty response`;
+            continue;
+          }
+
+          parsedContent = extractJsonFromText(rawText);
+          successfulModel = model;
+          console.log(`[AI Generation] Success with model: ${model}`);
+          break; // Successfully got JSON!
+        } catch (err: any) {
+          console.warn(`[AI Generation] Model ${model} exception:`, err?.message);
+          lastError = err?.message || 'Timeout/Network error';
+        }
+      }
     }
 
-    const parsed = extractJsonFromText(rawContent);
+    if (!parsedContent) {
+      // User explicitly asked for NO FALLBACK: Return error so user knows exact issue
+      return NextResponse.json(
+        {
+          error: `AI generation failed across all free models: ${lastError}`,
+        },
+        { status: 502 }
+      );
+    }
 
-    // Merge parsed AI output with safe fallbacks
+    // Validate and build clean AdContent object
     const finalContent: AdContent = {
-      audience: String(parsed.audience || base.audience).trim(),
-      headline: String(parsed.headline || base.headline).trim(),
-      highlight: String(parsed.highlight || base.highlight).trim(),
-      subheadline: String(parsed.subheadline || base.subheadline).trim(),
-      guarantee: String(parsed.guarantee || base.guarantee).trim(),
-      cta: String(parsed.cta || base.cta).trim(),
-      disclaimer: String(parsed.disclaimer || base.disclaimer).trim(),
-      bigStat: String(parsed.bigStat || base.bigStat).trim(),
-      statDescription: String(parsed.statDescription || base.statDescription).trim(),
-      longCopy: String(parsed.longCopy || base.longCopy).trim(),
-      xPain: String(parsed.xPain || base.xPain).trim(),
-      checkPromise: String(parsed.checkPromise || base.checkPromise).trim(),
-      chatLead1: String(parsed.chatLead1 || base.chatLead1).trim(),
-      chatYou1: String(parsed.chatYou1 || base.chatYou1).trim(),
-      chatLead2: String(parsed.chatLead2 || base.chatLead2).trim(),
-      chatYou2: String(parsed.chatYou2 || base.chatYou2).trim(),
-      chatFooterTitle: String(parsed.chatFooterTitle || base.chatFooterTitle).trim(),
-      notesTitle: String(parsed.notesTitle || base.notesTitle).trim(),
-      notesSubtitle: String(parsed.notesSubtitle || base.notesSubtitle).trim(),
-      notesSteps: Array.isArray(parsed.notesSteps) && parsed.notesSteps.length >= 3
-        ? parsed.notesSteps.slice(0, 4).map(String)
-        : base.notesSteps,
-      accentColor: parsed.accentColor || base.accentColor || '#22d3ee',
+      audience: String(parsedContent.audience || 'FOR BUSINESS OWNERS').trim(),
+      headline: String(parsedContent.headline || prompt).trim(),
+      highlight: String(parsedContent.highlight || parsedContent.headline || '').trim(),
+      subheadline: String(parsedContent.subheadline || '').trim(),
+      guarantee: String(parsedContent.guarantee || 'Results guaranteed or your money back.').trim(),
+      cta: String(parsedContent.cta || 'Book Your 1:1 Call').trim(),
+      disclaimer: String(parsedContent.disclaimer || 'Results may vary. Terms apply.').trim(),
+      bigStat: String(parsedContent.bigStat || '10x').trim(),
+      statDescription: String(parsedContent.statDescription || 'proven results in 30 days').trim(),
+      longCopy: String(parsedContent.longCopy || '').trim(),
+      xPain: String(parsedContent.xPain || 'Struggling with low conversion and quiet calendar').trim(),
+      checkPromise: String(parsedContent.checkPromise || 'Consistent results and booked calls on autopilot').trim(),
+      chatLead1: String(parsedContent.chatLead1 || 'I need help growing my business').trim(),
+      chatYou1: String(parsedContent.chatYou1 || 'What is your biggest bottleneck right now?').trim(),
+      chatLead2: String(parsedContent.chatLead2 || 'Getting consistent qualified leads').trim(),
+      chatYou2: String(parsedContent.chatYou2 || 'We can install our proven system in 7 days!').trim(),
+      chatFooterTitle: String(parsedContent.chatFooterTitle || 'Transform your growth today').trim(),
+      notesTitle: String(parsedContent.notesTitle || 'The 4-Step Action Plan').trim(),
+      notesSubtitle: String(parsedContent.notesSubtitle || 'Clear roadmap to scale').trim(),
+      notesSteps: Array.isArray(parsedContent.notesSteps) && parsedContent.notesSteps.length >= 3
+        ? parsedContent.notesSteps.slice(0, 4).map(String)
+        : [
+          'Audit existing sales flow',
+          'Deploy high-converting copy',
+          'Launch automated lead capture',
+          'Scale results month over month',
+        ],
+      accentColor: parsedContent.accentColor || '#22d3ee',
     };
 
     return NextResponse.json({
       content: finalContent,
       isAiGenerated: true,
-      model: modelName,
+      model: successfulModel,
     });
-  } catch (error) {
-    console.error('AI generation exception:', error);
-    return NextResponse.json({
-      content: parseOfferText(prompt || ''),
-      isAiGenerated: false,
-    });
+  } catch (error: any) {
+    console.error('Fatal AI error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'AI generation failed' },
+      { status: 500 }
+    );
   }
 }
