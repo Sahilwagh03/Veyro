@@ -1,69 +1,248 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useRef } from 'react';
+import { Header } from '@/components/Header';
+import { AdSquare } from '@/components/AdTemplates';
+import { EditorModal } from '@/components/EditorModal';
+import { Logo } from '@/components/logo';
+import { parseOfferText } from '@/utils/parser';
+import { exportAdAsPng, copyAdToClipboard } from '@/utils/exporter';
+import { AdContent, TemplateId } from '@/types/ad';
+
+const DEFAULT_OFFER = 'We help coaches and agency owners get 40 sales calls a month without chasing leads. We place a trained setter in your business in 7 days. 30 calls in 30 days or you don\'t pay.';
 
 export default function Home() {
+  const [credits, setCredits] = useState<number>(30);
+  const [rawOffer, setRawOffer] = useState<string>(DEFAULT_OFFER);
+  const [adContent, setAdContent] = useState<AdContent>(() => parseOfferText(DEFAULT_OFFER));
+  const [editingTemplateId, setEditingTemplateId] = useState<TemplateId | null>(null);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const templatesRef = useRef<HTMLElement>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 3500);
+  };
+
+  const scrollToTemplates = () => {
+    setTimeout(() => {
+      templatesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+  };
+
+  const handleGenerate = async () => {
+    if (!rawOffer.trim()) {
+      showToast('Please enter an offer description');
+      return;
+    }
+
+    if (credits <= 0) {
+      showToast('No credits remaining!');
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const res = await fetch('/api/generate-ad', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: rawOffer }),
+      });
+
+      if (!res.ok) {
+        throw new Error('API returned non-200 status');
+      }
+
+      const data = await res.json();
+      if (data.content) {
+        setAdContent(data.content);
+        setCredits((prev) => Math.max(0, prev - 10));
+        showToast(data.isAiGenerated ? 'Generated 10 AI-crafted ad squares!' : 'Generated 10 high-converting ad squares!');
+        scrollToTemplates();
+      } else {
+        throw new Error('No content returned');
+      }
+    } catch (e) {
+      console.error(e);
+      const parsed = parseOfferText(rawOffer);
+      setAdContent(parsed);
+      setCredits((prev) => Math.max(0, prev - 10));
+      showToast('Generated 10 high-converting ad squares!');
+      scrollToTemplates();
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleDownloadPng = async (id: TemplateId) => {
+    try {
+      showToast(`Exporting Template #${id} as 1080x1080 PNG...`);
+      await exportAdAsPng(`ad-canvas-${id}`, `veyro-template-${id}`);
+      showToast(`Downloaded Template #${id} PNG successfully!`);
+    } catch (e) {
+      console.error(e);
+      showToast(`Failed to export Template #${id}`);
+    }
+  };
+
+  const handleCopyClipboard = async (id: TemplateId) => {
+    const success = await copyAdToClipboard(`ad-canvas-${id}`);
+    if (success) {
+      showToast(`Copied Template #${id} image to clipboard!`);
+    } else {
+      showToast(`Failed to copy image (try PNG download)`);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen bg-white text-slate-900 flex flex-col font-sans">
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div
+          className="fixed bottom-6 right-6 z-50 px-5 py-3 bg-slate-900 text-white font-medium text-xs rounded-xl shadow-2xl animate-fadeIn border-l-4"
+          style={{ borderLeftColor: '#f02508' }}
+        >
+          <span>{toastMessage}</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      )}
+
+      {/* Header */}
+      <Header credits={credits} />
+
+      <main className="flex-1">
+        {/* Exact Hero 2-Column Section */}
+        <div className="mx-auto grid max-w-6xl gap-12 px-5 py-8 lg:grid-cols-[1.1fr_0.9fr] lg:py-12">
+          {/* Left Column */}
+          <section>
+            <p
+              className="text-xs font-bold uppercase tracking-[0.3em]"
+              style={{ color: '#9c3918' }}
+            >
+              Veyro
+            </p>
+            <h1 className="mt-5 text-4xl font-extrabold leading-[1.05] tracking-tight text-slate-900 sm:text-6xl">
+              High-converting ads sell. Make ten in a minute.
+            </h1>
+            <p className="mt-6 max-w-xl text-lg text-slate-600">
+              Paste your offer in plain words. Veyro crafts direct-response copy, ten proven high-converting ad layouts render instantly in your browser, and you download the whole set as 1080×1080 PNGs.
+            </p>
+            <ul className="mt-8 space-y-3">
+              <li className="flex gap-3 text-sm text-slate-900">
+                <span className="mt-0.5 font-bold text-[#f02508]">→</span>
+                <span>30 free credits the moment you sign up — 3 generations, 30 ad squares.</span>
+              </li>
+              <li className="flex gap-3 text-sm text-slate-900">
+                <span className="mt-0.5 font-bold text-[#f02508]">→</span>
+                <span>Ten different high-converting direct-response layouts per generation.</span>
+              </li>
+              <li className="flex gap-3 text-sm text-slate-900">
+                <span className="mt-0.5 font-bold text-[#f02508]">→</span>
+                <span>Every creative is a real 1080×1080 PNG you can upload straight to ads.</span>
+              </li>
+              <li className="flex gap-3 text-sm text-slate-900">
+                <span className="mt-0.5 font-bold text-[#f02508]">→</span>
+                <span>After your free credits, it&apos;s ₹199 a month for 300 credits.</span>
+              </li>
+            </ul>
+          </section>
+
+          {/* Right Column Form Card (Direct input only) */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 flex flex-col justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                Generate 10 ad creatives
+              </h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Paste your offer below — 30 credits included, no card needed.
+              </p>
+
+              {/* Offer input textarea */}
+              <div className="mt-6 space-y-2">
+                <label className="text-sm font-semibold leading-none text-slate-900" htmlFor="offerText">
+                  Your Offer Description
+                </label>
+                <textarea
+                  id="offerText"
+                  rows={10}
+                  value={rawOffer}
+                  onChange={(e) => setRawOffer(e.target.value)}
+                  disabled={isGenerating}
+                  style={{ resize: 'none' }}
+                  placeholder="Paste your offer in plain words... (e.g. We help coaches get 40 sales calls a month without chasing leads. We place a trained setter in your business in 7 days. 30 calls in 30 days or you don't pay.)"
+                  className="flex w-full resize-none rounded-md border border-slate-200 bg-slate-50 p-3.5 text-sm text-slate-900 shadow-2xs placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#f02508] transition-all leading-relaxed disabled:opacity-60 disabled:cursor-not-allowed"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <button
+                onClick={handleGenerate}
+                disabled={isGenerating}
+                className="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-bold cursor-pointer transition-all text-white h-11 rounded-md px-8 w-full disabled:opacity-50 shadow-md hover:brightness-105 active:scale-[0.99]"
+                style={{
+                  background: 'linear-gradient(135deg, #f02508 0%, #fc964c 100%)',
+                  boxShadow: '0 4px 14px rgba(240, 37, 8, 0.25)',
+                }}
+              >
+                {isGenerating ? 'Rendering 10 Ads...' : 'Get my 10 ad creatives'}
+              </button>
+            </div>
+          </section>
         </div>
+
+        {/* Templates Grid Section */}
+        <section ref={templatesRef} className="border-t border-slate-200 bg-slate-50/50 scroll-mt-16">
+          <div className="mx-auto max-w-6xl px-5 py-16">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">
+                  The ten templates you get
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600">
+                  Every generation fills all ten layouts with your offer — audience, pain, timeline and a “Book Your 1:1 Call” CTA. Click any card to edit.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((id) => (
+                <AdSquare
+                  key={id}
+                  id={id as TemplateId}
+                  content={adContent}
+                  onEdit={(templateId) => setEditingTemplateId(templateId)}
+                  onDownload={(templateId) => handleDownloadPng(templateId)}
+                  onCopy={(templateId) => handleCopyClipboard(templateId)}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
+
+      {/* Editor Modal */}
+      <EditorModal
+        isOpen={editingTemplateId !== null}
+        templateId={editingTemplateId}
+        content={adContent}
+        onChange={(updated) => setAdContent(updated)}
+        onClose={() => setEditingTemplateId(null)}
+      />
+
+      {/* Footer */}
+      <footer className="border-t border-slate-200 py-8 text-xs text-slate-500 bg-white">
+        <div className="max-w-6xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-0.5">
+            <Logo className="h-4 w-auto" color="#f02508" />
+            <span className="font-bold text-slate-900 tracking-tight">eyro</span>
+            <span className="ml-1.5">— © {new Date().getFullYear()} All rights reserved.</span>
+          </div>
+          <p>Built for direct-response marketing & growth teams</p>
+        </div>
+      </footer>
     </div>
   );
 }
