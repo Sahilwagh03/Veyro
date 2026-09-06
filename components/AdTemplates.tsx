@@ -3,16 +3,16 @@ import { Pencil, Copy, Download, Lock } from 'lucide-react';
 import { AdContent, TemplateId, TemplateMeta } from '../types/ad';
 
 export const TEMPLATE_METAS: TemplateMeta[] = [
-  { id: 1, name: 'Bold black + neon', description: 'High contrast dark card with neon cyan accents', tag: 'High-Converting' },
-  { id: 2, name: 'Bold black — big statement', description: 'Massive uppercase headline with white block CTA', tag: 'Aggressive' },
-  { id: 3, name: 'Maroon long copy', description: 'Deep maroon background with persuasive long text', tag: 'Storytelling' },
-  { id: 4, name: 'Gold serif one-liner', description: 'Elegant luxury gold layout with classic serif font', tag: 'Premium' },
-  { id: 5, name: 'Blue paragraph', description: 'Clean royal blue layout with readable paragraph text', tag: 'Authority' },
-  { id: 6, name: 'X vs check split', description: 'Side-by-side pain vs promise split comparison boxes', tag: 'Problem/Solution' },
-  { id: 7, name: 'Chat screenshot mock', description: 'Realistic WhatsApp / iMessage chat conversation', tag: 'Social Proof' },
-  { id: 8, name: 'White bold headline', description: 'Minimalist white card with huge typography and arrow', tag: 'Minimalist' },
-  { id: 9, name: 'Red big number', description: 'Vibrant red layout led by giant stat percentage/number', tag: 'Stat-Driven' },
-  { id: 10, name: 'Notes app mock', description: 'iOS Notes app layout with 4-step checklist', tag: 'Organized' },
+  { id: 1, name: 'Bold black + neon', description: 'High contrast dark card with neon cyan accents', tag: 'High-Converting', angle: 'Pain Point Focus' },
+  { id: 2, name: 'Bold black — big statement', description: 'Massive uppercase headline with white block CTA', tag: 'Aggressive', angle: 'Desired Outcome' },
+  { id: 3, name: 'Maroon long copy', description: 'Deep maroon background with persuasive long text', tag: 'Storytelling', angle: 'Before vs. After' },
+  { id: 4, name: 'Gold serif one-liner', description: 'Elegant luxury gold layout with classic serif font', tag: 'Premium', angle: 'Price / Value Anchor' },
+  { id: 5, name: 'Blue paragraph', description: 'Clean royal blue layout with readable paragraph text', tag: 'Authority', angle: 'Speed & Efficiency' },
+  { id: 6, name: 'X vs check split', description: 'Side-by-side pain vs promise split comparison boxes', tag: 'Problem/Solution', angle: 'Financial ROI' },
+  { id: 7, name: 'Chat screenshot mock', description: 'Realistic WhatsApp / iMessage chat conversation', tag: 'Social Proof', angle: 'Step-by-Step' },
+  { id: 8, name: 'White bold headline', description: 'Minimalist white card with huge typography and arrow', tag: 'Minimalist', angle: 'Objection Handling' },
+  { id: 9, name: 'Red big number', description: 'Vibrant red layout led by giant stat percentage/number', tag: 'Stat-Driven', angle: 'Curiosity Hook' },
+  { id: 10, name: 'Notes app mock', description: 'iOS Notes app layout with 4-step checklist', tag: 'Organized', angle: 'Product Demonstration' },
 ];
 
 interface AdSquareProps {
@@ -37,6 +37,25 @@ export const AdSquare: React.FC<AdSquareProps> = ({
   const accent = content.accentColor || '#22d3ee';
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [scale, setScale] = React.useState<number>(0.3333);
+
+  const item = content.items?.[id - 1];
+
+  const headline = item?.headline || content.headline;
+  const subheadline = item?.subheadline || content.subheadline;
+  const highlight = item?.highlight || content.highlight;
+  const cta = item?.cta || content.cta;
+  const xPain = item?.xPain || content.xPain;
+  const checkPromise = item?.checkPromise || content.checkPromise;
+  const chatLead1 = item?.chatLead1 || content.chatLead1;
+  const chatYou1 = item?.chatYou1 || content.chatYou1;
+  const chatLead2 = item?.chatLead2 || content.chatLead2;
+  const chatYou2 = item?.chatYou2 || content.chatYou2;
+  const chatFooterTitle = item?.chatFooterTitle || content.chatFooterTitle;
+  const notesTitle = item?.notesTitle || content.notesTitle;
+  const notesSubtitle = item?.notesSubtitle || content.notesSubtitle;
+  const notesSteps = item?.notesSteps || content.notesSteps;
+  const bigStat = item?.bigStat || content.bigStat;
+  const statDescription = item?.statDescription || content.statDescription;
 
   const updateScale = React.useCallback(() => {
     if (containerRef.current) {
@@ -78,16 +97,16 @@ export const AdSquare: React.FC<AdSquareProps> = ({
 
             <div className="flex-1 flex flex-col justify-center items-center gap-[40px] px-[80px] text-center">
               <h1 className="text-[78px] font-extrabold leading-[1.08] m-0">
-                {renderHighlightedText(content.headline, content.highlight, accent)}
+                {renderHighlightedText(headline, highlight, accent)}
               </h1>
               <p className="text-[38px] font-semibold leading-[1.35] m-0 text-[#c9d1dc]">
-                {content.subheadline}
+                {subheadline}
               </p>
               <div
                 className="text-white text-[36px] font-extrabold tracking-[2px] uppercase py-[34px] px-[48px] rounded-lg shadow-lg w-full"
                 style={{ backgroundColor: accent }}
               >
-                {content.cta}
+                {cta}
               </div>
             </div>
 
@@ -112,7 +131,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                 {content.audience}
               </div>
               <h1 className="text-[104px] font-extrabold leading-[0.98] m-0 uppercase tracking-[-2px]">
-                {renderHighlightedText(content.headline, content.highlight, accent)}
+                {renderHighlightedText(headline, highlight, accent)}
               </h1>
               <div className="w-[180px] h-[8px]" style={{ backgroundColor: accent }} />
               <p className="text-[36px] font-medium leading-[1.35] m-0 text-[#b9c2cf]">
@@ -121,7 +140,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
             </div>
 
             <div className="bg-white text-[#0a0a0a] py-[42px] px-[48px] text-center text-[38px] font-extrabold tracking-[1px] uppercase">
-              {content.cta}
+              {cta}
             </div>
           </div>
         );
@@ -135,13 +154,13 @@ export const AdSquare: React.FC<AdSquareProps> = ({
           >
             <div className="flex-1 flex flex-col justify-center gap-[34px] px-[92px] text-center">
               <h1 className="text-[54px] font-extrabold leading-[1.15] m-0">
-                {content.headline}
+                {headline}
               </h1>
               <p className="text-[37px] font-normal leading-[1.42] m-0 text-[#f3d0d0]">
-                {content.longCopy}
+                {subheadline || content.longCopy}
               </p>
               <p className="text-[38px] font-extrabold m-0 text-[#ffffff] underline underline-offset-8">
-                {content.cta}
+                {cta}
               </p>
             </div>
           </div>
@@ -162,13 +181,13 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                 {content.audience}
               </div>
               <h1 className="text-[76px] font-normal leading-[1.24] m-0">
-                {content.headline}
+                {headline}
               </h1>
               <p
                 className="text-[34px] m-0 font-medium text-[#fff6df]"
                 style={{ fontFamily: "'Poppins', sans-serif" }}
               >
-                {content.guarantee}
+                {subheadline || content.guarantee}
               </p>
             </div>
 
@@ -176,7 +195,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
               className="bg-[#1a1206] text-white py-[38px] px-[48px] text-center text-[36px] font-extrabold tracking-[2px] uppercase"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              {content.cta}
+              {cta}
             </div>
           </div>
         );
@@ -193,7 +212,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                 {content.audience}
               </div>
               <p className="text-[52px] font-normal leading-[1.32] m-0">
-                {content.longCopy}
+                {subheadline || headline}
               </p>
               <p className="text-[32px] font-bold m-0 opacity-90 text-[#bfdbfe]">
                 {content.guarantee}
@@ -201,7 +220,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
             </div>
 
             <div className="bg-[#0a1f45] py-[38px] px-[48px] text-center text-[36px] font-extrabold tracking-[2px] uppercase">
-              {content.cta}
+              {cta}
             </div>
           </div>
         );
@@ -222,7 +241,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                 ✕
               </div>
               <p className="text-[52px] font-bold leading-[1.2] m-0 text-[#f6dcd8]">
-                {content.xPain}
+                {xPain}
               </p>
             </div>
 
@@ -231,7 +250,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                 ✓
               </div>
               <p className="text-[52px] font-bold leading-[1.2] m-0 text-white">
-                {content.checkPromise}
+                {checkPromise}
               </p>
             </div>
 
@@ -239,13 +258,13 @@ export const AdSquare: React.FC<AdSquareProps> = ({
               className="py-[38px] px-[48px] text-center text-[34px] font-extrabold tracking-[2px] uppercase text-black"
               style={{ backgroundColor: accent }}
             >
-              {content.cta}
+              {cta}
             </div>
           </div>
         );
 
       case 7:
-        // Chat Screenshot Mock (Exact easyimagecreator spacing and WhatsApp pattern)
+        // Chat Screenshot Mock
         return (
           <div
             className="w-[1080px] h-[1080px] bg-[#0b141a] text-[#111b21] flex flex-col overflow-hidden relative"
@@ -265,7 +284,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
               <div className="text-[32px] text-[#cfe9e3]">⋮</div>
             </div>
 
-            {/* Chat Body with WhatsApp Pattern and Balanced Spacing */}
+            {/* Chat Body with WhatsApp Pattern */}
             <div
               className="flex-1 flex flex-col gap-[18px] px-[30px] py-[24px] justify-center"
               style={{
@@ -283,7 +302,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                   <div className="text-[18px] font-extrabold tracking-[1px] uppercase mb-[4px] text-[#8a9aa2]">
                     Lead
                   </div>
-                  {content.chatLead1}
+                  {chatLead1}
                   <span className="absolute right-[18px] bottom-[7px] text-[18px] text-[#8a9aa2] whitespace-nowrap">
                     9:12
                   </span>
@@ -296,7 +315,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                   <div className="text-[18px] font-extrabold tracking-[1px] uppercase mb-[4px] text-[#0b6b4a]">
                     You
                   </div>
-                  {content.chatYou1}
+                  {chatYou1}
                   <span className="absolute right-[18px] bottom-[7px] text-[18px] text-[#0b6b4a] whitespace-nowrap">
                     10:29 ✓✓
                   </span>
@@ -315,7 +334,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                   <div className="text-[18px] font-extrabold tracking-[1px] uppercase mb-[4px] text-[#8a9aa2]">
                     Lead
                   </div>
-                  {content.chatLead2}
+                  {chatLead2}
                   <span className="absolute right-[18px] bottom-[7px] text-[18px] text-[#8a9aa2] whitespace-nowrap">
                     12:46
                   </span>
@@ -328,7 +347,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
                   <div className="text-[18px] font-extrabold tracking-[1px] uppercase mb-[4px] text-[#0b6b4a]">
                     You
                   </div>
-                  {content.chatYou2}
+                  {chatYou2}
                   <span className="absolute right-[18px] bottom-[7px] text-[18px] text-[#0b6b4a] whitespace-nowrap">
                     14:03 ✓✓
                   </span>
@@ -345,13 +364,13 @@ export const AdSquare: React.FC<AdSquareProps> = ({
               style={{ backgroundColor: accent }}
             >
               <div className="text-[40px] font-extrabold uppercase tracking-[1px] text-black leading-tight">
-                {content.chatFooterTitle}
+                {chatFooterTitle}
               </div>
               <div className="text-[26px] font-semibold mt-[8px] text-black/90">
-                {content.subheadline}
+                {subheadline}
               </div>
               <div className="mt-[16px] inline-block bg-white text-[#0a0a0a] rounded-full py-[16px] px-[44px] text-[28px] font-extrabold uppercase tracking-[1px] shadow-[0_2px_4px_rgba(0,0,0,0.1)]">
-                {content.cta}
+                {cta}
               </div>
             </div>
           </div>
@@ -366,16 +385,16 @@ export const AdSquare: React.FC<AdSquareProps> = ({
           >
             <div className="flex-1 flex flex-col justify-center items-center gap-[40px] px-[84px] text-center">
               <h1 className="text-[90px] font-extrabold leading-[1.05] m-0 tracking-[-2px]">
-                {renderHighlightedText(content.headline, content.highlight, accent)}
+                {renderHighlightedText(headline, highlight, accent)}
               </h1>
               <p className="text-[38px] font-medium leading-[1.35] m-0 text-[#4b5563]">
-                {content.subheadline}
+                {subheadline}
               </p>
               <div className="text-[96px] leading-none font-extrabold" style={{ color: accent }}>
                 ↓
               </div>
               <div className="border-[4px] border-[#0a0a0a] rounded-full py-[24px] px-[56px] text-[34px] font-extrabold uppercase tracking-[1px]">
-                {content.cta}
+                {cta}
               </div>
             </div>
           </div>
@@ -390,14 +409,14 @@ export const AdSquare: React.FC<AdSquareProps> = ({
           >
             <div className="flex-1 flex flex-col justify-center items-center gap-[36px] px-[80px] text-center">
               <div className="text-[116px] font-extrabold leading-none tracking-[-3px] uppercase">
-                {content.bigStat}
+                {bigStat}
               </div>
               <div className="w-[200px] h-[8px] bg-white opacity-90" />
               <h1 className="text-[58px] font-bold leading-[1.2] m-0">
-                {content.statDescription}
+                {statDescription || headline}
               </h1>
               <div className="mt-[12px] bg-white text-[#d61f26] rounded-full py-[26px] px-[60px] text-[36px] font-extrabold uppercase tracking-[1px] shadow-xl">
-                {content.cta}
+                {cta}
               </div>
             </div>
           </div>
@@ -422,13 +441,13 @@ export const AdSquare: React.FC<AdSquareProps> = ({
               >
                 {content.audience}
               </div>
-              <h1 className="text-[58px] font-extrabold m-0 text-white">{content.notesTitle}</h1>
+              <h1 className="text-[58px] font-extrabold m-0 text-white">{notesTitle}</h1>
               <p className="text-[34px] leading-[1.45] m-0 text-[#e6e6e6]">
-                {content.notesSubtitle}
+                {notesSubtitle}
               </p>
               <div className="text-[34px] font-bold text-white">How we do this:</div>
               <ol className="m-0 pl-[46px] flex flex-col gap-[20px]">
-                {content.notesSteps.map((step, idx) => (
+                {notesSteps.map((step, idx) => (
                   <li key={idx} className="text-[32px] leading-[1.4] font-semibold text-[#f4f4f5]">
                     {step}
                   </li>
@@ -441,7 +460,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
               className="py-[38px] px-[48px] text-center text-[36px] font-extrabold tracking-[2px] uppercase text-black"
               style={{ backgroundColor: accent }}
             >
-              {content.cta}
+              {cta}
             </div>
           </div>
         );
@@ -474,7 +493,7 @@ export const AdSquare: React.FC<AdSquareProps> = ({
       {/* Caption & Action Bar */}
       <figcaption className="border-t border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 flex items-center justify-between gap-2">
         <span className="capitalize text-slate-800 truncate text-[11px] sm:text-xs">
-          {TEMPLATE_METAS[id - 1].name}
+          {TEMPLATE_METAS[id - 1].name} {item?.angle ? `• ${item.angle}` : ''}
         </span>
         {isLoggedIn ? (
           <div className="flex items-center gap-1.5 font-sans shrink-0">

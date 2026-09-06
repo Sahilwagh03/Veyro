@@ -1,4 +1,4 @@
-import { AdContent, PresetOffer } from '../types/ad';
+import { AdContent, CreativeItem, OfferIntelligence, PresetOffer, TemplateId } from '../types/ad';
 
 export const PRESETS: PresetOffer[] = [
   {
@@ -6,13 +6,13 @@ export const PRESETS: PresetOffer[] = [
     name: 'Coaching & Agency',
     icon: 'Users',
     description: 'Lead gen & setter placement offer for high-ticket service providers',
-    rawOffer: 'We help coaches and agency owners get 40 sales calls a month without chasing leads. We place a trained setter in your business in 7 days. 30 calls in 30 days or you don\'t pay.',
+    rawOffer: "We help coaches and agency owners get 40 sales calls a month without chasing leads. We place a trained setter in your business in 7 days. 30 calls in 30 days or you don't pay.",
     content: {
       audience: 'FOR COACHES & AGENCY OWNERS',
       headline: 'Get 40 sales calls a month without chasing leads',
       highlight: '40 sales calls a month',
       subheadline: 'We place a trained setter in your business in 7 days.',
-      guarantee: '30 calls in 30 days or you don\'t pay.',
+      guarantee: "30 calls in 30 days or you don't pay.",
       cta: 'Book Your 1:1 Call',
       disclaimer: 'Results vary. Guarantee terms apply.',
       bigStat: '40',
@@ -26,7 +26,7 @@ export const PRESETS: PresetOffer[] = [
       chatYou2: "That's a follow-up bottleneck — let's fix it!",
       chatFooterTitle: 'Stuck coaches get unstuck in 30 days',
       notesTitle: 'The 7-day setup',
-      notesSubtitle: 'For coaches with a quiet calendar: 30 booked calls in 30 days, or you don\'t pay.',
+      notesSubtitle: "For coaches with a quiet calendar: 30 booked calls in 30 days, or you don't pay.",
       notesSteps: [
         'We audit your existing leads',
         'We place a trained setter',
@@ -71,132 +71,239 @@ export const PRESETS: PresetOffer[] = [
       accentColor: '#22d3ee',
     },
   },
-  {
-    id: 'ecommerce',
-    name: 'E-Commerce & Brands',
-    icon: 'ShoppingBag',
-    description: 'DTC product offer with discount or free shipping guarantee',
-    rawOffer: 'Double your online store sales without buying more ads. We optimize your product page copy and checkout flow in 14 days or full refund.',
-    content: {
-      audience: 'FOR SHOPIFY & DTC BRAND OWNERS',
-      headline: 'Double your online store sales without buying more ads',
-      highlight: 'Double your store sales',
-      subheadline: 'High-converting product page optimization delivered in 14 days.',
-      guarantee: '2x ROI in 30 days or 100% money back guarantee.',
-      cta: 'Claim Free Audit Call',
-      disclaimer: 'Valid for DTC brands generating $20k+/month.',
-      bigStat: '+114%',
-      statDescription: 'average conversion increase in 30 days',
-      longCopy: 'Driving Facebook ad traffic to a low-converting product page burns money. We rewrite your offer headlines, redesign your trust badges, and fix checkout drop-offs.',
-      xPain: 'Paying high ad cost with low conversion rate',
-      checkPromise: '2x conversion rate with optimized sales page',
-      chatLead1: 'Our Facebook ads get clicks but customers leave at cart',
-      chatYou1: 'Where is your biggest drop-off happening right now?',
-      chatLead2: 'Right on the checkout page after seeing shipping costs',
-      chatYou2: "We'll overhaul your checkout flow in 14 days!",
-      chatFooterTitle: 'Fix your checkout leaks in 14 days',
-      notesTitle: 'The Conversion Overhaul Plan',
-      notesSubtitle: 'For Shopify store owners: double your sales from existing ad traffic.',
-      notesSteps: [
-        'Heatmap & drop-off audit of your product page',
-        'High-converting headline & offer rewrite',
-        '1-click checkout optimization installed',
-        'Watch your conversion rate double',
-      ],
-      accentColor: '#22d3ee',
-    },
-  },
-  {
-    id: 'fitness',
-    name: 'Fitness & Health',
-    icon: 'Activity',
-    description: 'Transformation coaching offer with body fat loss guarantee',
-    rawOffer: 'Lose 15 lbs of belly fat in 60 days without giving up your favorite foods. Designed for busy executives. Guaranteed results or 100% money back.',
-    content: {
-      audience: 'FOR BUSY PROFESSIONALS & EXECUTIVES',
-      headline: 'Lose 15 lbs of belly fat in 60 days without strict diets',
-      highlight: 'Lose 15 lbs in 60 days',
-      subheadline: 'Custom 30-minute workout routine tailored to your busy work schedule.',
-      guarantee: 'Lose 15 lbs in 60 days or you pay nothing.',
-      cta: 'Claim Your Custom Plan',
-      disclaimer: 'Individual results vary based on commitment.',
-      bigStat: '-15 lbs',
-      statDescription: 'average fat loss in 60 days without crash diets',
-      longCopy: 'You do not need to spend 2 hours in the gym or starve on salad leaves. Our 3-step executive protocol burns stubborn fat while fitting into your 60-hour workweek.',
-      xPain: 'Exhausted after work and skipping workouts',
-      checkPromise: 'Drop 2 pant sizes in 60 days with 30-min workouts',
-      chatLead1: "I work 10 hours a day, I don't have time for complex meals",
-      chatYou1: 'How many days a week can you spare 30 minutes?',
-      chatLead2: '3 days easily if it actually works',
-      chatYou2: "That's all we need! Let's get your custom plan started.",
-      chatFooterTitle: 'Get executive fit in 60 days',
-      notesTitle: 'The 60-Day Executive Fat Loss Plan',
-      notesSubtitle: 'Drop 15 lbs of fat while keeping your high-stress career on track.',
-      notesSteps: [
-        'Metabolic & lifestyle assessment',
-        'Custom 30-minute workout protocol',
-        'Flexible nutrition plan with your favorite foods',
-        'Weekly 1:1 accountability check-ins',
-      ],
-      accentColor: '#22d3ee',
-    },
-  },
-  {
-    id: 'realestate',
-    name: 'Real Estate Leads',
-    icon: 'Home',
-    description: 'Local real estate agent lead generation system',
-    rawOffer: 'Get 25 exclusive buyer and seller leads every month in your local neighborhood on autopilot. We build and run your local ad campaigns for you.',
-    content: {
-      audience: 'FOR REALTORS & REAL ESTATE AGENTS',
-      headline: 'Get 25 exclusive buyer leads every month on autopilot',
-      highlight: '25 exclusive buyer leads',
-      subheadline: 'We setup, launch, and manage local Facebook & Google ad campaigns for you.',
-      guarantee: 'At least 15 verified leads in month one guaranteed.',
-      cta: 'Check Local Availability',
-      disclaimer: 'Only 1 agent accepted per zip code.',
-      bigStat: '25+',
-      statDescription: 'exclusive local leads delivered every single month',
-      longCopy: 'Stop buying shared Zillow leads that 5 other agents are calling at the exact same time. We generate exclusive local buyers interested specifically in your listings.',
-      xPain: 'Chasing cold leads that never pick up the phone',
-      checkPromise: 'Pre-qualified buyers calling you directly',
-      chatLead1: 'Zillow leads are getting too expensive and cold',
-      chatYou1: 'Are you looking for exclusive local buyers in your territory?',
-      chatLead2: 'Yes! I need buyers ready to close in the next 90 days.',
-      chatYou2: "We lock down your zip code today! Let's talk.",
-      chatFooterTitle: 'Dominate your local zip code',
-      notesTitle: 'The Exclusive Lead Engine',
-      notesSubtitle: 'For agents looking to close 2-3 extra deals every single month.',
-      notesSteps: [
-        'Zip code availability check',
-        'Custom hyper-local ad campaign launch',
-        'Automated SMS follow-up sequence setup',
-        'Qualified buyers booked on your phone calendar',
-      ],
-      accentColor: '#22d3ee',
-    },
-  }
 ];
+
+export function parseOfferIntelligence(rawText: string): OfferIntelligence {
+  const clean = rawText.trim();
+  const sentences = clean.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean);
+
+  const priceMatch = clean.match(/(?:₹|\$|USD|INR)\s*[\d,]+/gi);
+  const price = priceMatch ? priceMatch[priceMatch.length - 1] : undefined;
+  const originalPrice = priceMatch && priceMatch.length > 1 ? priceMatch[0] : undefined;
+
+  const guaranteeMatch = clean.match(/([^.!?]*(?:guarantee|don't pay|money back|refund)[^.!?]*)/i);
+
+  return {
+    product: sentences[0] || 'High-Converting Solution',
+    category: 'Direct Response Service',
+    targetAudience: [extractAudience(clean) || 'Business Owners & Growth Teams'],
+    primaryAudience: extractAudience(clean) || 'FOR BUSINESS OWNERS',
+    problem: ['Low conversion rates', 'Inconsistent qualified leads'],
+    painPoints: ['Spending hours on manual tasks with low ROI', 'Unpredictable calendar and high ad costs'],
+    desiredOutcomes: [sentences[0] || 'Consistent growth and high-converting results'],
+    benefits: ['10x speed', 'Instant automation', 'Done-for-you workflow'],
+    features: ['Custom AI scripts', 'Instant rendering', 'Exportable PNG creatives'],
+    mechanism: 'Direct-Response System',
+    differentiators: ['No manual setup required', 'Built for high ROI'],
+    proof: [],
+    objections: ['Will this work for my niche?', 'Is setup difficult?'],
+    offer: {
+      price,
+      originalPrice,
+      guarantee: guaranteeMatch ? guaranteeMatch[1].trim() : undefined,
+      deliverables: ['10 Ad Creatives', 'Editable Copy', '1080x1080 PNG Export'],
+    },
+    cta: [extractCTA(clean) || 'Get Started Now'],
+    claims: [sentences[0] || 'Get high-converting results'],
+    forbiddenClaims: [],
+  };
+}
+
+export function generate10AngleItems(base: AdContent, intel: OfferIntelligence): CreativeItem[] {
+  const problems = Array.isArray(intel.problem) ? intel.problem : typeof intel.problem === 'string' ? [intel.problem] : [];
+  const painPoints = Array.isArray(intel.painPoints) ? intel.painPoints : typeof intel.painPoints === 'string' ? [intel.painPoints] : [];
+  const desiredOutcomes = Array.isArray(intel.desiredOutcomes) ? intel.desiredOutcomes : typeof intel.desiredOutcomes === 'string' ? [intel.desiredOutcomes] : [];
+  const price = intel.offer?.price || intel.pricePoint || '';
+  const product = intel.product || intel.coreProduct || base.headline;
+  const guarantee = intel.offer?.guarantee || base.guarantee;
+
+  const items: CreativeItem[] = [
+    // 1. Pain / Frustration
+    {
+      id: 1,
+      angle: 'Pain / Frustration',
+      psychologicalTrigger: 'frustration',
+      hook: `Still struggling with ${problems[0] || intel.primaryPainPoint || 'low conversion'}?`,
+      headline: `Stop Burning Money On ${problems[0] || intel.primaryPainPoint || 'Ads That Do Not Convert'}`,
+      highlight: `Stop Burning Money`,
+      subheadline: `Replace manual effort with a proven direct-response workflow.`,
+      audience: base.audience,
+      cta: 'Stop Wasting Time',
+      disclaimer: base.disclaimer,
+      xPain: painPoints[0] || intel.primaryPainPoint || 'Manual setup taking hours',
+      checkPromise: desiredOutcomes[0] || intel.primaryOutcome || 'Automated high-converting output',
+    },
+    // 2. Desired Outcome
+    {
+      id: 2,
+      angle: 'Desired Outcome',
+      psychologicalTrigger: 'desire',
+      hook: `Achieve ${desiredOutcomes[0] || intel.primaryOutcome || 'consistent growth'} without chasing leads`,
+      headline: base.headline,
+      highlight: base.highlight,
+      subheadline: base.subheadline,
+      audience: base.audience,
+      cta: base.cta,
+      disclaimer: base.disclaimer,
+    },
+    // 3. Before vs After
+    {
+      id: 3,
+      angle: 'Before vs After',
+      psychologicalTrigger: 'contrast',
+      hook: `Before vs After: Transform your results in minutes`,
+      headline: `The Shift From Struggling To Scaled`,
+      highlight: `Struggling To Scaled`,
+      subheadline: base.subheadline,
+      audience: base.audience,
+      cta: 'See The Difference',
+      longCopy: base.longCopy,
+    },
+    // 4. Offer / Price
+    {
+      id: 4,
+      angle: 'Offer / Price',
+      psychologicalTrigger: 'value',
+      hook: price ? `Get ${product} for ${price}` : `Claim Your Exclusive Offer Today`,
+      headline: price
+        ? `${product} — Only ${price}`
+        : `High-Converting ${product}`,
+      highlight: price || product,
+      subheadline: guarantee,
+      audience: base.audience,
+      cta: 'Claim Offer Now',
+      bigStat: price || base.bigStat,
+      statDescription: guarantee || 'Risk-free guarantee',
+    },
+    // 5. Time Saving
+    {
+      id: 5,
+      angle: 'Time Saving',
+      psychologicalTrigger: 'efficiency',
+      hook: `Save hours every week with automated generation`,
+      headline: `Generate 10 Ready-To-Run Ads In 60 Seconds`,
+      highlight: `60 Seconds`,
+      subheadline: `Stop starting from scratch. Get 10 scroll-stopping ad layouts instantly.`,
+      audience: base.audience,
+      cta: 'Save Time Now',
+    },
+    // 6. Cost Saving / ROI
+    {
+      id: 6,
+      angle: 'Cost Saving / ROI',
+      psychologicalTrigger: 'ROI',
+      hook: `2x your return without buying more ads`,
+      headline: `Double Your Sales From The Same Ad Spend`,
+      highlight: `Double Your Sales`,
+      subheadline: `High-converting copy engineered specifically to boost ROI.`,
+      audience: base.audience,
+      cta: 'Maximize Your ROI',
+      xPain: 'High customer acquisition cost',
+      checkPromise: '2x conversion rate on existing traffic',
+    },
+    // 7. How It Works / Social Proof
+    {
+      id: 7,
+      angle: 'How It Works',
+      psychologicalTrigger: 'simplicity',
+      hook: `How top brands generate high-performing ads in 4 steps`,
+      headline: `4 Simple Steps To Scroll-Stopping Ads`,
+      highlight: `4 Simple Steps`,
+      subheadline: `Paste offer → AI Strategist → 10 Layouts → Export PNG.`,
+      audience: base.audience,
+      cta: 'See How It Works',
+      chatLead1: `I need high-converting ads without spending hours on copy`,
+      chatYou1: `What if you could generate 10 proven layouts in seconds?`,
+      chatLead2: `That would save our marketing team tons of time!`,
+      chatYou2: `Let's launch your first batch right now!`,
+      chatFooterTitle: `Launch your first batch in under 60 seconds`,
+    },
+    // 8. Objection Handling
+    {
+      id: 8,
+      angle: 'Objection Handling',
+      psychologicalTrigger: 'reassurance',
+      hook: `Worried about low conversion or hard-to-use tools?`,
+      headline: `No Complex Setup. No Marketing Degree Needed.`,
+      highlight: `No Complex Setup`,
+      subheadline: base.guarantee || `Designed for rapid execution with zero friction.`,
+      audience: base.audience,
+      cta: 'Try Risk-Free',
+    },
+    // 9. Curiosity / Pattern Interrupt
+    {
+      id: 9,
+      angle: 'Curiosity / Pattern Interrupt',
+      psychologicalTrigger: 'curiosity',
+      hook: `Guess why 90% of social media ads get ignored?`,
+      headline: `Your Ads Don't Have A Budget Problem. They Have A Hook Problem.`,
+      highlight: `A Hook Problem`,
+      subheadline: `Stop writing generic marketing copy. Use proven direct-response angles.`,
+      audience: base.audience,
+      cta: 'Fix Your Ads Today',
+      bigStat: '90%',
+      statDescription: 'of ads fail because of weak headlines',
+    },
+    // 10. Product Demonstration / Deliverables
+    {
+      id: 10,
+      angle: 'Product Demonstration',
+      psychologicalTrigger: 'clarity',
+      hook: `1 Offer input. 10 complete 1080x1080 PNG ad creatives.`,
+      headline: `Your 10-Ad Creative Batch Is Ready`,
+      highlight: `10-Ad Creative Batch`,
+      subheadline: `Everything included: copy, headlines, hooks, and editable cards.`,
+      audience: base.audience,
+      cta: 'Download All 10 Creatives',
+      notesTitle: 'What You Get In Every Batch',
+      notesSubtitle: '10 distinct direct-response ad squares ready for Meta & Instagram.',
+      notesSteps: [
+        '10 psychologically unique advertising angles',
+        '100% editable copy, headlines & CTAs',
+        'Full 1080×1080 high-resolution PNG export',
+        'Bulk ZIP archive download in 1 click',
+      ],
+    },
+  ];
+
+  return items;
+}
 
 export function parseOfferText(rawText: string): AdContent {
   const clean = rawText.trim();
-  if (!clean) return PRESETS[0].content;
 
-  // Extract key sentences
-  const sentences = clean.split(/[.!?]+/).map(s => s.trim()).filter(Boolean);
-  
+  // If empty, return first preset
+  if (!clean) {
+    const base = PRESETS[0].content;
+    const intel = parseOfferIntelligence(PRESETS[0].rawOffer);
+    return {
+      ...base,
+      items: generate10AngleItems(base, intel),
+      offerIntelligence: intel,
+    };
+  }
+
+  const sentences = clean.split(/[.!?]+/).map((s) => s.trim()).filter(Boolean);
   const audience = extractAudience(clean) || 'FOR BUSINESS OWNERS & LEADERS';
-  const headline = sentences[0] || 'Get high-converting results for your business';
+
+  // Extract concise headline <= 10 words
+  const rawHeadline = sentences[0] || 'Get high-converting results for your business';
+  const shortProduct = rawHeadline.split(':')[0].trim();
+  const headline = shortProduct.split(/\s+/).length <= 8
+    ? shortProduct
+    : rawHeadline.split(/\s+/).slice(0, 7).join(' ');
+
   const highlight = extractHighlight(headline);
-  const subheadline = sentences[1] || 'Transform your offer with proven high-converting ad copy.';
+  const subheadline = sentences[1] || sentences[0] || 'Transform your offer with proven high-converting ad copy.';
   const guarantee = sentences[2] || 'Guaranteed results or your money back.';
   const cta = extractCTA(clean) || 'Book Your 1:1 Call';
-  
-  // Numbers matching
+
   const numberMatch = clean.match(/(\d+\s*(?: calls| lbs|%|x|k| days)?)/i);
   const bigStat = numberMatch ? numberMatch[1].toUpperCase() : '10x';
 
-  return {
+  const intel = parseOfferIntelligence(clean);
+
+  const baseContent: AdContent = {
     audience: audience.toUpperCase(),
     headline,
     highlight,
@@ -205,8 +312,8 @@ export function parseOfferText(rawText: string): AdContent {
     cta,
     disclaimer: 'Results vary. Terms and conditions apply.',
     bigStat,
-    statDescription: `${headline.toLowerCase()} in the next 30 days`,
-    longCopy: `Most offers do not fail because of product quality. They fail because of poor follow-up. ${subheadline} ${guarantee}`,
+    statDescription: `${headline} in the next 30 days`,
+    longCopy: `Most offers do not fail because of product quality. They fail because of poor messaging. ${subheadline} ${guarantee}`,
     xPain: `Struggling with low conversion and quiet calendar`,
     checkPromise: `Consistent results and booked calls on autopilot`,
     chatLead1: `I'm spending time and money but not seeing consistent growth`,
@@ -224,6 +331,12 @@ export function parseOfferText(rawText: string): AdContent {
     ],
     accentColor: '#22d3ee',
   };
+
+  return {
+    ...baseContent,
+    items: generate10AngleItems(baseContent, intel),
+    offerIntelligence: intel,
+  };
 }
 
 function extractAudience(text: string): string | null {
@@ -237,7 +350,6 @@ function extractAudience(text: string): string | null {
 function extractHighlight(headline: string): string {
   const words = headline.split(' ');
   if (words.length <= 3) return headline;
-  // Pick middle 3-5 words
   return words.slice(Math.floor(words.length / 3), Math.floor(words.length / 3) + 4).join(' ');
 }
 
