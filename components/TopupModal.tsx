@@ -37,21 +37,24 @@ export const TOPUP_PLANS: CreditPlan[] = [
 interface TopupModalProps {
   isOpen: boolean;
   currentCredits: number;
+  isPaying?: boolean;
   userId?: string;
   userEmail?: string;
   onClose: () => void;
   onSuccess: (newCredits: number) => void;
+  onCheckout?: () => void;
 }
 
 export const TopupModal: React.FC<TopupModalProps> = ({
   isOpen,
   currentCredits,
+  isPaying = false,
   userId,
   userEmail,
   onClose,
   onSuccess,
+  onCheckout,
 }) => {
-  const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -59,11 +62,12 @@ export const TopupModal: React.FC<TopupModalProps> = ({
   const plan = TOPUP_PLANS[0];
 
   const handleCheckout = async () => {
-    setLoading(true);
+    if (onCheckout) {
+      onCheckout();
+      return;
+    }
     setErrorMsg(null);
-
     try {
-      // 1. Create order on server
       const orderRes = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -81,7 +85,6 @@ export const TopupModal: React.FC<TopupModalProps> = ({
 
       const orderData = await orderRes.json();
 
-      // Demo/Mock fallback if Razorpay keys are not yet configured in .env.local
       if (orderData.isMock) {
         const verifyRes = await fetch('/api/payment/verify', {
           method: 'POST',
@@ -103,13 +106,11 @@ export const TopupModal: React.FC<TopupModalProps> = ({
         return;
       }
 
-      // 2. Load Razorpay SDK
       const loaded = await loadRazorpayScript();
       if (!loaded) {
-        throw new Error('Could not load Razorpay payment gateway. Please check your internet connection or disable ad-blockers.');
+        throw new Error('Could not load Razorpay payment gateway.');
       }
 
-      // 3. Launch Razorpay Standard Checkout Popup
       const options = {
         key: orderData.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
@@ -117,52 +118,35 @@ export const TopupModal: React.FC<TopupModalProps> = ({
         name: 'Veyro',
         description: `Pro Subscription (${plan.credits} Credits)`,
         order_id: orderData.orderId,
-        prefill: {
-          email: userEmail || '',
-        },
-        theme: {
-          color: '#f02508', // Veyro flame red
-        },
+        prefill: { email: userEmail || '' },
+        theme: { color: '#f02508' },
         handler: async (response: any) => {
-          try {
-            const verifyRes = await fetch('/api/payment/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                orderId: response.razorpay_order_id,
-                paymentId: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                userId: userId || 'anonymous',
-                creditsToAdd: plan.credits,
-              }),
-            });
+          const verifyRes = await fetch('/api/payment/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              userId: userId || 'anonymous',
+              creditsToAdd: plan.credits,
+            }),
+          });
 
-            const verifyData = await verifyRes.json();
-            if (verifyData.success) {
-              const updatedBalance = currentCredits + plan.credits;
-              onSuccess(verifyData.newCredits || updatedBalance);
-              onClose();
-            } else {
-              setErrorMsg(verifyData.error || 'Payment verification failed');
-            }
-          } catch (vErr: any) {
-            setErrorMsg(vErr.message || 'Payment verification network error');
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+            onSuccess(verifyData.newCredits || currentCredits + plan.credits);
+            onClose();
+          } else {
+            setErrorMsg(verifyData.error || 'Payment verification failed');
           }
-        },
-        modal: {
-          ondismiss: () => {
-            setLoading(false);
-          },
         },
       };
 
       const razorpayInstance = new (window as any).Razorpay(options);
       razorpayInstance.open();
     } catch (err: any) {
-      console.error('Checkout error:', err);
-      setErrorMsg(err.message || 'Failed to initiate payment. Please try again.');
-    } finally {
-      setLoading(false);
+      setErrorMsg(err.message || 'Failed to initiate payment.');
     }
   };
 
@@ -227,14 +211,14 @@ export const TopupModal: React.FC<TopupModalProps> = ({
         <div className="space-y-3">
           <button
             onClick={handleCheckout}
-            disabled={loading}
+            disabled={isPaying}
             className="w-full h-11 rounded-xl text-sm font-extrabold text-white transition-all shadow-md hover:brightness-105 active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
             style={{
               background: 'linear-gradient(135deg, #f02508 0%, #fc964c 100%)',
               boxShadow: '0 4px 14px rgba(240, 37, 8, 0.25)',
             }}
           >
-            {loading ? (
+            {isPaying ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
                 <span>Processing Checkout...</span>

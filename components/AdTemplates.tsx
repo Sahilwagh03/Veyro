@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pencil, Copy, Download } from 'lucide-react';
+import { Pencil, Copy, Download, Lock } from 'lucide-react';
 import { AdContent, TemplateId, TemplateMeta } from '../types/ad';
 
 export const TEMPLATE_METAS: TemplateMeta[] = [
@@ -18,6 +18,8 @@ export const TEMPLATE_METAS: TemplateMeta[] = [
 interface AdSquareProps {
   id: TemplateId;
   content: AdContent;
+  isLoggedIn?: boolean;
+  onRequireAuth?: () => void;
   onEdit?: (id: TemplateId) => void;
   onDownload?: (id: TemplateId) => void;
   onCopy?: (id: TemplateId) => void;
@@ -26,6 +28,8 @@ interface AdSquareProps {
 export const AdSquare: React.FC<AdSquareProps> = ({
   id,
   content,
+  isLoggedIn = false,
+  onRequireAuth,
   onEdit,
   onDownload,
   onCopy,
@@ -472,35 +476,37 @@ export const AdSquare: React.FC<AdSquareProps> = ({
         <span className="capitalize text-slate-800 truncate text-[11px] sm:text-xs">
           {TEMPLATE_METAS[id - 1].name}
         </span>
-        <div className="flex items-center gap-1.5 font-sans shrink-0">
-          <button
-            onClick={() => onEdit?.(id)}
-            title="Edit creative text & styling"
-            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs text-[11px] font-medium"
-          >
-            <Pencil className="w-3 h-3 text-slate-500" />
-            <span>Edit</span>
-          </button>
-          <button
-            onClick={() => onCopy?.(id)}
-            title="Copy image to clipboard"
-            className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs text-[11px] font-medium"
-          >
-            <Copy className="w-3 h-3 text-slate-500" />
-            <span>Copy</span>
-          </button>
-          <button
-            onClick={() => onDownload?.(id)}
-            title="Download full 1080×1080 PNG creative"
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-white font-bold transition-all hover:brightness-110 active:scale-95 cursor-pointer shadow-2xs text-[11px]"
-            style={{
-              background: 'linear-gradient(135deg, #f02508 0%, #fc964c 100%)',
-            }}
-          >
-            <Download className="w-3 h-3" />
-            <span>PNG</span>
-          </button>
-        </div>
+        {isLoggedIn ? (
+          <div className="flex items-center gap-1.5 font-sans shrink-0">
+            <button
+              onClick={() => onEdit?.(id)}
+              title="Edit creative text & styling"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs text-[11px] font-medium"
+            >
+              <Pencil className="w-3 h-3 text-slate-500" />
+              <span>Edit</span>
+            </button>
+            <button
+              onClick={() => onCopy?.(id)}
+              title="Copy image to clipboard"
+              className="inline-flex items-center gap-1 px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer shadow-2xs text-[11px] font-medium"
+            >
+              <Copy className="w-3 h-3 text-slate-500" />
+              <span>Copy</span>
+            </button>
+            <button
+              onClick={() => onDownload?.(id)}
+              title="Download full 1080×1080 PNG creative"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-white font-bold transition-all hover:brightness-110 active:scale-95 cursor-pointer shadow-2xs text-[11px]"
+              style={{
+                background: 'linear-gradient(135deg, #f02508 0%, #fc964c 100%)',
+              }}
+            >
+              <Download className="w-3 h-3" />
+              <span>PNG</span>
+            </button>
+          </div>
+        ) : null}
       </figcaption>
     </figure>
   );
