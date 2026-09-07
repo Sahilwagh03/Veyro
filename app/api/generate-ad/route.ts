@@ -79,58 +79,28 @@ export async function POST(req: Request) {
     let parsedContent: any = null;
     let successfulModel = '';
 
-    if (groqKey) {
-      const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-      for (const model of groqModels) {
-        try {
-          console.log(`[AI Generation] Calling Groq model: ${model}`);
-          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    // Priority 1: Google Gemini
+    if (geminiKey) {
+      const model = getEnvKey('GEMINI_MODEL') || 'gemini-3.6-flash';
+      try {
+        console.log(`[AI Generation] Calling Gemini model: ${model}...`);
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`,
+          {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${groqKey}`,
               'Content-Type': 'application/json',
+              'x-goog-api-key': geminiKey,
             },
             signal: AbortSignal.timeout(25000),
             body: JSON.stringify({
-              model,
-              temperature: 0.8,
-              messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                { role: 'user', content: createUserPrompt(prompt) },
-              ],
-            }),
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            const rawText = data.choices?.[0]?.message?.content;
-            if (rawText) {
-              parsedContent = extractJsonFromText(rawText);
-              successfulModel = `groq/${model}`;
-              console.log(`[AI Generation] Success with Groq model: ${model}`);
-              break;
-            }
-          }
-        } catch (err: any) {
-          console.warn(`[AI Generation] Groq ${model} exception:`, err?.message);
-        }
-      }
-    }
-
-    if (!parsedContent && geminiKey) {
-      try {
-        console.log(`[AI Generation] Calling Gemini 2.0 Flash...`);
-        const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: AbortSignal.timeout(25000),
-            body: JSON.stringify({
+              system_instruction: {
+                parts: [{ text: SYSTEM_PROMPT }],
+              },
               contents: [
                 {
                   role: 'user',
-                  parts: [{ text: `${SYSTEM_PROMPT}\n\n${createUserPrompt(prompt)}` }],
+                  parts: [{ text: createUserPrompt(prompt) }],
                 },
               ],
               generationConfig: {
@@ -146,18 +116,19 @@ export async function POST(req: Request) {
           const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawText) {
             parsedContent = extractJsonFromText(rawText);
-            successfulModel = 'google/gemini-2.0-flash';
-            console.log(`[AI Generation] Success with Gemini 2.0 Flash`);
+            successfulModel = `google/${model}`;
+            console.log(`[AI Generation] Success with Gemini model: ${model}`);
           }
         } else {
           const errText = await response.text();
-          console.warn(`[AI Generation] Gemini returned ${response.status}: ${errText}`);
+          console.warn(`[AI Generation] Gemini ${model} returned ${response.status}: ${errText}`);
         }
       } catch (err: any) {
-        console.warn(`[AI Generation] Gemini exception:`, err?.message);
+        console.warn(`[AI Generation] Gemini ${model} exception:`, err?.message);
       }
     }
 
+    // Priority 2: OpenRouter
     if (!parsedContent && apiKey) {
       for (const model of modelsToTry) {
         try {
@@ -203,6 +174,45 @@ export async function POST(req: Request) {
         } catch (err: any) {
           console.warn(`[AI Generation] Model ${model} exception:`, err?.message);
           lastError = err?.message || 'Timeout/Network error';
+        }
+      }
+    }
+
+    // Priority 3: Groq
+    if (!parsedContent && groqKey) {
+      const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+      for (const model of groqModels) {
+        try {
+          console.log(`[AI Generation] Calling Groq model: ${model}`);
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqKey}`,
+              'Content-Type': 'application/json',
+            },
+            signal: AbortSignal.timeout(25000),
+            body: JSON.stringify({
+              model,
+              temperature: 0.8,
+              messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                { role: 'user', content: createUserPrompt(prompt) },
+              ],
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const rawText = data.choices?.[0]?.message?.content;
+            if (rawText) {
+              parsedContent = extractJsonFromText(rawText);
+              successfulModel = `groq/${model}`;
+              console.log(`[AI Generation] Success with Groq model: ${model}`);
+              break;
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[AI Generation] Groq ${model} exception:`, err?.message);
         }
       }
     }
