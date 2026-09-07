@@ -26,7 +26,7 @@ export function useAdGenerator({
   deductCredits,
   showToast,
 }: UseAdGeneratorParams) {
-  const [rawOffer, setRawOffer] = useState<string>(DEFAULT_OFFER);
+  const [rawOffer, setRawOffer] = useState<string>('');
   const [adContent, setAdContent] = useState<AdContent>(() => parseOfferText(DEFAULT_OFFER));
   const [editingTemplateId, setEditingTemplateId] = useState<TemplateId | null>(null);
   const templatesRef = useRef<HTMLElement | null>(null);

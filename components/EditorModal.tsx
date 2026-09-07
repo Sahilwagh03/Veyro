@@ -21,22 +21,56 @@ export const EditorModal: React.FC<EditorModalProps> = ({
   if (!isOpen || templateId === null) return null;
 
   const meta = TEMPLATE_METAS[templateId - 1];
+  const item = Array.isArray(content.items) ? content.items[templateId - 1] : undefined;
+
+  const getValue = (field: keyof AdContent): any => {
+    if (item && field in item && (item as any)[field] !== undefined) {
+      return (item as any)[field];
+    }
+    return (content as any)[field] ?? '';
+  };
 
   const handleTextChange = (field: keyof AdContent, value: string) => {
-    onChange({
+    const updatedContent: AdContent = {
       ...content,
       [field]: value,
-    });
+    };
+
+    if (Array.isArray(content.items) && templateId !== null && content.items[templateId - 1]) {
+      const updatedItems = [...content.items];
+      updatedItems[templateId - 1] = {
+        ...updatedItems[templateId - 1],
+        [field]: value,
+      };
+      updatedContent.items = updatedItems;
+    }
+
+    onChange(updatedContent);
   };
 
   const handleStepChange = (index: number, value: string) => {
-    const updatedSteps = [...content.notesSteps];
+    const currentSteps = (item?.notesSteps || content.notesSteps || []) as string[];
+    const updatedSteps = [...currentSteps];
     updatedSteps[index] = value;
-    onChange({
+
+    const updatedContent: AdContent = {
       ...content,
       notesSteps: updatedSteps,
-    });
+    };
+
+    if (Array.isArray(content.items) && templateId !== null && content.items[templateId - 1]) {
+      const updatedItems = [...content.items];
+      updatedItems[templateId - 1] = {
+        ...updatedItems[templateId - 1],
+        notesSteps: updatedSteps,
+      };
+      updatedContent.items = updatedItems;
+    }
+
+    onChange(updatedContent);
   };
+
+  const stepsList = (item?.notesSteps || content.notesSteps || []) as string[];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
@@ -64,7 +98,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
               </label>
               <input
                 type="text"
-                value={content.audience}
+                value={getValue('audience')}
                 onChange={(e) => handleTextChange('audience', e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f02508] text-sm"
               />
@@ -76,7 +110,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
               </label>
               <input
                 type="text"
-                value={content.cta}
+                value={getValue('cta')}
                 onChange={(e) => handleTextChange('cta', e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f02508] text-sm"
               />
@@ -89,7 +123,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
             </label>
             <textarea
               rows={2}
-              value={content.headline}
+              value={getValue('headline')}
               onChange={(e) => handleTextChange('headline', e.target.value)}
               style={{ resize: 'none' }}
               className="w-full resize-none bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f02508] text-sm"
@@ -103,7 +137,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
               </label>
               <input
                 type="text"
-                value={content.highlight}
+                value={getValue('highlight')}
                 onChange={(e) => handleTextChange('highlight', e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f02508] text-sm"
               />
@@ -136,7 +170,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
             </label>
             <textarea
               rows={2}
-              value={content.subheadline}
+              value={getValue('subheadline')}
               onChange={(e) => handleTextChange('subheadline', e.target.value)}
               style={{ resize: 'none' }}
               className="w-full resize-none bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f02508] text-sm"
@@ -149,7 +183,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
             </label>
             <input
               type="text"
-              value={content.guarantee}
+              value={getValue('guarantee')}
               onChange={(e) => handleTextChange('guarantee', e.target.value)}
               className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f02508] text-sm"
             />
@@ -162,7 +196,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
               </label>
               <textarea
                 rows={3}
-                value={content.longCopy}
+                value={getValue('longCopy')}
                 onChange={(e) => handleTextChange('longCopy', e.target.value)}
                 style={{ resize: 'none' }}
                 className="w-full resize-none bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900 focus:outline-none focus:ring-1 focus:ring-[#f02508] text-sm"
@@ -178,7 +212,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={content.xPain}
+                  value={getValue('xPain')}
                   onChange={(e) => handleTextChange('xPain', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                 />
@@ -189,7 +223,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={content.checkPromise}
+                  value={getValue('checkPromise')}
                   onChange={(e) => handleTextChange('checkPromise', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                 />
@@ -206,7 +240,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={content.chatLead1}
+                    value={getValue('chatLead1')}
                     onChange={(e) => handleTextChange('chatLead1', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                   />
@@ -217,7 +251,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={content.chatYou1}
+                    value={getValue('chatYou1')}
                     onChange={(e) => handleTextChange('chatYou1', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                   />
@@ -230,7 +264,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={content.chatLead2}
+                    value={getValue('chatLead2')}
                     onChange={(e) => handleTextChange('chatLead2', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                   />
@@ -241,7 +275,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    value={content.chatYou2}
+                    value={getValue('chatYou2')}
                     onChange={(e) => handleTextChange('chatYou2', e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                   />
@@ -258,7 +292,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={content.bigStat}
+                  value={getValue('bigStat')}
                   onChange={(e) => handleTextChange('bigStat', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                 />
@@ -269,7 +303,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
                 </label>
                 <input
                   type="text"
-                  value={content.statDescription}
+                  value={getValue('statDescription')}
                   onChange={(e) => handleTextChange('statDescription', e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-md px-3 py-1.5 text-slate-900"
                 />
@@ -282,7 +316,7 @@ export const EditorModal: React.FC<EditorModalProps> = ({
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Checklist Steps
               </label>
-              {content.notesSteps.map((step, i) => (
+              {stepsList.map((step, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <span className="w-5 text-center text-xs font-bold text-slate-500">
                     {i + 1}.

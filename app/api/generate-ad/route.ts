@@ -5,7 +5,6 @@ import { AdContent } from '@/types/ad';
 import { SYSTEM_PROMPT, createUserPrompt } from '@/constants/prompts';
 import { parseOfferText } from '@/utils/parser';
 
-// Dynamically read environment variables to ensure live reload without restarting dev server
 function getEnvKey(keyName: string): string {
   if (process.env[keyName]) {
     return process.env[keyName]!.trim();
@@ -31,7 +30,6 @@ function getEnvKey(keyName: string): string {
 
 function extractJsonFromText(raw: string): any {
   let text = raw.trim();
-  // Strip markdown code fences
   if (text.startsWith('```')) {
     text = text.replace(/^```[a-zA-Z]*\n?/, '').replace(/\n?```$/, '').trim();
   }
@@ -43,12 +41,12 @@ function extractJsonFromText(raw: string): any {
   return JSON.parse(text);
 }
 
-// Active free models on OpenRouter prioritized for fast response + balanced DR copy quality
 const FREE_MODELS = [
-  'minimax/minimax-m2.7:free',          // ~1.9s fast response, excellent schema adherence
-  'minimax/minimax-m3:free',            // ~3.6s fast response, deeper strategic reasoning
-  'liquid/lfm-2.5-2.6b:free',           // Lightweight instant fallback
-  'dots-studio/dots-3-note-preview:free',
+  'minimax/minimax-m3:free',
+  'google/gemma-4-31b-it:free',
+  'nvidia/nemotron-3.5-lightning:free',
+  'minimax/minimax-m2.7:free',
+  'liquid/lfm-2.5-2.6b:free',
   'inclusionai/ling-3.0-flash-sante:free',
 ];
 
@@ -63,17 +61,17 @@ export async function POST(req: Request) {
 
     const apiKey = getEnvKey('OPENROUTER_API_KEY');
     const groqKey = getEnvKey('GROQ_API_KEY');
+    const geminiKey = getEnvKey('GEMINI_API_KEY');
 
-    if (!apiKey && !groqKey) {
+    if (!apiKey && !groqKey && !geminiKey) {
       return NextResponse.json(
         {
-          error: 'OPENROUTER_API_KEY or GROQ_API_KEY not found in .env or .env.local. Please add your key to enable AI generation.',
+          error: 'GROQ_API_KEY, GEMINI_API_KEY, or OPENROUTER_API_KEY not found in .env or .env.local. Please add a free key to enable AI generation.',
         },
         { status: 400 }
       );
     }
 
-    // Select preferred models list
     const customModel = getEnvKey('OPENROUTER_MODEL');
     const modelsToTry = customModel ? [customModel, ...FREE_MODELS] : FREE_MODELS;
 
@@ -81,7 +79,6 @@ export async function POST(req: Request) {
     let parsedContent: any = null;
     let successfulModel = '';
 
-    // 1. If Groq API key is available, attempt ultra-fast generation first (<1-2s)
     if (groqKey) {
       const groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
       for (const model of groqModels) {
@@ -93,7 +90,7 @@ export async function POST(req: Request) {
               'Authorization': `Bearer ${groqKey}`,
               'Content-Type': 'application/json',
             },
-            signal: AbortSignal.timeout(6000),
+            signal: AbortSignal.timeout(25000),
             body: JSON.stringify({
               model,
               temperature: 0.8,
@@ -120,7 +117,47 @@ export async function POST(req: Request) {
       }
     }
 
-    // 2. OpenRouter models with 12s timeout per model to prevent long hangs
+    if (!parsedContent && geminiKey) {
+      try {
+        console.log(`[AI Generation] Calling Gemini 2.0 Flash...`);
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            signal: AbortSignal.timeout(25000),
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [{ text: `${SYSTEM_PROMPT}\n\n${createUserPrompt(prompt)}` }],
+                },
+              ],
+              generationConfig: {
+                temperature: 0.7,
+                responseMimeType: 'application/json',
+              },
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (rawText) {
+            parsedContent = extractJsonFromText(rawText);
+            successfulModel = 'google/gemini-2.0-flash';
+            console.log(`[AI Generation] Success with Gemini 2.0 Flash`);
+          }
+        } else {
+          const errText = await response.text();
+          console.warn(`[AI Generation] Gemini returned ${response.status}: ${errText}`);
+        }
+      } catch (err: any) {
+        console.warn(`[AI Generation] Gemini exception:`, err?.message);
+      }
+    }
+
     if (!parsedContent && apiKey) {
       for (const model of modelsToTry) {
         try {
@@ -133,7 +170,7 @@ export async function POST(req: Request) {
               'HTTP-Referer': 'https://veyro.app',
               'X-Title': 'Veyro Direct-Response Ad Generator',
             },
-            signal: AbortSignal.timeout(6000),
+            signal: AbortSignal.timeout(25000),
             body: JSON.stringify({
               model,
               temperature: 0.8,
@@ -148,7 +185,7 @@ export async function POST(req: Request) {
             const errText = await response.text();
             console.warn(`[AI Generation] Model ${model} returned ${response.status}: ${errText}`);
             lastError = `Model ${model} error (${response.status}): ${errText}`;
-            continue; // Try next fast model
+            continue;
           }
 
           const data = await response.json();
@@ -162,7 +199,7 @@ export async function POST(req: Request) {
           parsedContent = extractJsonFromText(rawText);
           successfulModel = model;
           console.log(`[AI Generation] Success with model: ${model}`);
-          break; // Successfully got JSON!
+          break;
         } catch (err: any) {
           console.warn(`[AI Generation] Model ${model} exception:`, err?.message);
           lastError = err?.message || 'Timeout/Network error';

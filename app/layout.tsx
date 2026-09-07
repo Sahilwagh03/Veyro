@@ -1,7 +1,23 @@
 import type { Metadata } from 'next';
 import Script from 'next/script';
+import { Instrument_Serif, Poppins } from 'next/font/google';
 import { Providers } from './providers';
 import './globals.css';
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: ['400'],
+  style: ['normal', 'italic'],
+  variable: '--font-serif',
+  display: 'swap',
+});
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-sans',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: 'Veyro — High-Converting Ad Creatives in Seconds',
@@ -21,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${poppins.variable} ${instrumentSerif.variable}`}>
       <body className="bg-background text-foreground antialiased min-h-screen">
         <Providers>{children}</Providers>
         <Script
